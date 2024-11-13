@@ -6,6 +6,8 @@ dotenv.config()
 
 import CacheService from './cache-service'
 import { getCharacter, getCharacters, getMovie, getMovies } from './swapi-service'
+import { MovieResponse, DetailedMovieResponse } from './models/MovieResponse'
+import { CharacterResponse, DetailedCharacterResponse } from './models/CharacterResponse'
 
 async function startServer () {
   await CacheService.initRedisCache()
@@ -21,7 +23,7 @@ async function startServer () {
 
     const movies = await getMovies(sort, order)
 
-    const movieResponse = movies.map(movie => ({
+    const movieResponse: MovieResponse[] = movies.map(movie => ({
       title: movie.title,
       episode: movie.episode_id,
       releaseDate: movie.release_date
@@ -33,7 +35,7 @@ async function startServer () {
     const { id } = req.params
     const movie = await getMovie(id)
 
-    const movieResponse = {
+    const movieResponse: DetailedMovieResponse = {
       title: movie.title,
       episode: movie.episode_id,
       openingCrawl: movie.opening_crawl,
@@ -51,7 +53,7 @@ async function startServer () {
   app.get('/characters', async (req: Request, res: Response) => {
     const characters = await getCharacters()
 
-    const characterResponse = characters.map((character: any) => ({
+    const characterResponse: CharacterResponse[] = characters.map((character: any) => ({
       name: character.name,
       homeWorld: character.homeworld
     }))
@@ -64,12 +66,13 @@ async function startServer () {
 
     const character = await getCharacter(id, true)
 
-    const characterResponse = {
+    const characterResponse: DetailedCharacterResponse = {
       name: character.name,
       height: character.height,
       mass: character.mass,
       gender: character.gender,
       hairColor: character.hair_color,
+      homeWorld: character.homeworld,
       skinColor: character.skin_color,
       films: character.films,
     }
