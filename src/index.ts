@@ -16,68 +16,89 @@ async function startServer () {
   const PORT: string | number = process.env.PORT || 3000
 
   app.get('/movies', async (req: Request, res: Response) => {
-    const { sort, order } = req.query as {
-      sort: SortType
-      order: OrderDirection
+    try {
+      const { sort, order } = req.query as {
+        sort: SortType
+        order: OrderDirection
+      }
+
+      const movies = await getMovies(sort, order)
+
+      const movieResponse: MovieResponse[] = movies.map(movie => ({
+        title: movie.title,
+        episode: movie.episode_id,
+        releaseDate: movie.release_date
+      }))
+      res.send(movieResponse)
+    } catch (error) {
+      console.error('Error fetching movies:', error)
+      res.status(500).send({ error: 'Failed to fetch movies' })
     }
-
-    const movies = await getMovies(sort, order)
-
-    const movieResponse: MovieResponse[] = movies.map(movie => ({
-      title: movie.title,
-      episode: movie.episode_id,
-      releaseDate: movie.release_date
-    }))
-    res.send(movieResponse)
   })
 
   app.get('/movies/:id', async (req: Request, res: Response) => {
     const { id } = req.params
-    const movie = await getMovie(id)
+    try {
+      const movie = await getMovie(id)
 
-    const movieResponse: DetailedMovieResponse = {
-      title: movie.title,
-      episode: movie.episode_id,
-      openingCrawl: movie.opening_crawl,
-      director: movie.director,
-      producer: movie.producer,
-      releaseDate: movie.release_date,
-      characters: movie.characters,
-      planets: movie.planets,
-      starships: movie.starships
+      const movieResponse: DetailedMovieResponse = {
+        title: movie.title,
+        episode: movie.episode_id,
+        openingCrawl: movie.opening_crawl,
+        director: movie.director,
+        producer: movie.producer,
+        releaseDate: movie.release_date,
+        characters: movie.characters,
+        planets: movie.planets,
+        starships: movie.starships
+      }
+
+      res.send(movieResponse)
+    } catch (error) {
+      console.error(`Error fetching movie with ID ${id}:`, error)
+      res.status(500).send({ error: 'Failed to fetch movie details' })
     }
-
-    res.send(movieResponse)
   })
 
   app.get('/characters', async (req: Request, res: Response) => {
-    const characters = await getCharacters()
+    try {
+      const { movie: movieId } = req.query as { movie: string | null }
+      const characters = await getCharacters(movieId)
 
-    const characterResponse: CharacterResponse[] = characters.map((character: any) => ({
-      name: character.name,
-      homeWorld: character.homeworld
-    }))
+      const characterResponse: CharacterResponse[] = characters.map((character: any) => ({
+        name: character.name,
+        homeWorld: character.homeworld
+      }))
 
-    res.send(characterResponse)
+      res.send(characterResponse)
+    } catch (error) {
+      console.error('Error fetching characters:', error)
+      res.status(500).send({ error: 'Failed to fetch characters' })
+    }
   })
 
   app.get('/characters/:id', async (req: Request, res: Response) => {
     const { id } = req.params
+    try {
 
-    const character = await getCharacter(id, true)
+      const character = await getCharacter(id, true)
 
-    const characterResponse: DetailedCharacterResponse = {
-      name: character.name,
-      height: character.height,
-      mass: character.mass,
-      gender: character.gender,
-      hairColor: character.hair_color,
-      homeWorld: character.homeworld,
-      skinColor: character.skin_color,
-      films: character.films,
+      const characterResponse: DetailedCharacterResponse = {
+        name: character.name,
+        height: character.height,
+        mass: character.mass,
+        gender: character.gender,
+        hairColor: character.hair_color,
+        homeWorld: character.homeworld,
+        skinColor: character.skin_color,
+        films: character.films,
+      }
+
+      res.send(characterResponse)
+    } catch (error) {
+      console.error(`Error fetching character with ID ${id}:`, error)
+      res.status(500).send({ error: 'Failed to fetch character details' })
     }
-
-    res.send(characterResponse)
   })
 
   app.listen(PORT, () => {
