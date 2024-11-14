@@ -65,9 +65,7 @@ describe('getCharacter', () => {
       'characters:1',
       expect.any(Function)
     )
-    expect(global.fetch).toHaveBeenCalledWith(
-      'https://swapi.dev/api/people/1'
-    )
+    expect(global.fetch).toHaveBeenCalledWith('https://swapi.dev/api/people/1')
   })
 
   it('should throw an error if the API request fails', async () => {
@@ -85,21 +83,33 @@ describe('getCharacter', () => {
       ok: false
     })
 
-    await expect(getCharacter('1')).rejects.toThrow('Failed to fetch character details')
+    await expect(getCharacter('1')).rejects.toThrow(
+      'Failed to fetch character details'
+    )
     expect(CacheService.tryGetApiData).toHaveBeenCalledWith(
       'characters:1',
       expect.any(Function)
     )
-    expect(global.fetch).toHaveBeenCalledWith(
-      'https://swapi.dev/api/people/1'
-    )
+    expect(global.fetch).toHaveBeenCalledWith('https://swapi.dev/api/people/1')
   })
 
   it('should include film titles if includeFilmTitle is true', async () => {
     const mockMovies = [
-      { url: 'https://swapi.dev/api/films/1/', title: 'A New Hope', release_date: '1977-05-25' },
-      { url: 'https://swapi.dev/api/films/2/', title: 'The Empire Strikes Back', release_date: '1980-05-17' },
-      { url: 'https://swapi.dev/api/films/3/', title: 'Return of the Jedi', release_date: '1983-05-25' }
+      {
+        url: 'https://swapi.dev/api/films/1/',
+        title: 'A New Hope',
+        release_date: '1977-05-25'
+      },
+      {
+        url: 'https://swapi.dev/api/films/2/',
+        title: 'The Empire Strikes Back',
+        release_date: '1980-05-17'
+      },
+      {
+        url: 'https://swapi.dev/api/films/3/',
+        title: 'Return of the Jedi',
+        release_date: '1983-05-25'
+      }
     ]
 
     ;(CacheService.tryGetApiData as jest.Mock).mockImplementation(
@@ -115,6 +125,11 @@ describe('getCharacter', () => {
     )
 
     const character = await getCharacter('1', true)
+
+    expect(CacheService.tryGetApiData).toHaveBeenCalledWith(
+      'movies',
+      expect.any(Function)
+    )
 
     expect(character.films).toEqual([
       'A New Hope',

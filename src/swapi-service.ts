@@ -71,39 +71,25 @@ export async function getMovie (id: string): Promise<Movie> {
       }
     )
 
-    const starshipPromises = Promise.all(
-      movieDetails.starships.map(async (url: string) => {
-        const starshipId = trimUrl(url).split('/').pop()
-        const starship = await getStarship(starshipId!)
-        return starship.name
-      })
-    )
-
-    const planetPromises = Promise.all(
-      movieDetails.planets.map(async (url: string) => {
-        const planetId = trimUrl(url).split('/').pop()
-        const planet = await getPlanet(planetId!)
-        return planet.name
-      })
-    )
-
-    const characterPromises = Promise.all(
-      movieDetails.characters.map(async (url: string) => {
-        const characterId = trimUrl(url).split('/').pop()
-        const character = await getCharacter(characterId!)
-        return character.name
-      })
-    )
+    const planetsPromise = getPlanets()
+    const starshipPromise = getStarships()
+    const characterPromise = getCharacters()
 
     const [starships, planets, characters] = await Promise.all([
-      starshipPromises,
-      planetPromises,
-      characterPromises
+      starshipPromise,
+      planetsPromise,
+      characterPromise
     ])
 
     movieDetails.starships = starships
+      .filter(s => movieDetails.starships.includes(s.url))
+      .map(s => s.name)
     movieDetails.planets = planets
+      .filter(p => movieDetails.planets.includes(p.url))
+      .map(p => p.name)
     movieDetails.characters = characters
+      .filter(c => movieDetails.characters.includes(c.url))
+      .map(c => c.name)
 
     return movieDetails
   } catch (error) {
@@ -113,41 +99,73 @@ export async function getMovie (id: string): Promise<Movie> {
 }
 
 /**
- * Fetches and returns the details of a specific planet by its ID.
- * @param {string} id - The ID of the planet.
- * @returns {Promise<Planet>} - A promise that resolves to the planet details.
+ * Fetches all planets from the SWAPI (Star Wars API) and caches the result.
+ *
+ * This function retrieves the planets data from the SWAPI, handling pagination
+ * to ensure all pages of results are fetched. The data is then cached using
+ * the CacheService to avoid redundant API calls.
+ *
+ * @returns {Promise<Planet[]>} A promise that resolves to an array of Planet objects.
+ *
+ * @throws {Error} Throws an error if the fetch operation fails.
  */
-async function getPlanet (id: string): Promise<Planet> {
+async function getPlanets (): Promise<Planet[]> {
   const SWAPI_URL = process.env.SWAPI_URL
 
   try {
-    return await CacheService.tryGetApiData(`planets:${id}`, async () => {
-      const response = await fetch(`${SWAPI_URL}/planets/${id}`)
-      if (!response.ok) throw new Error('Failed to fetch planet details')
-      return await response.json()
+    return await CacheService.tryGetApiData(`planets`, async () => {
+      const response = await fetch(`${SWAPI_URL}/planets`)
+      if (!response.ok) throw new Error('Failed to fetch planets')
+      const data: ApiResponse<Planet> = await response.json()
+      const totalPages = Math.ceil(data.count / 10)
+      const requests = fetchAllPages(totalPages, `${SWAPI_URL}/planets`)
+      const responses = await Promise.all(requests)
+      const planetResponses: ApiResponse<Planet>[] = await Promise.all(
+        responses.map(res => res.json())
+      )
+      planetResponses.forEach(pageData => {
+        data.results = data.results.concat(pageData.results)
+      })
+      return data.results
     })
   } catch (error) {
-    console.error(`Error fetching planet with ID ${id}:`, error)
+    console.error(`Error fetching planets:`, error)
     throw error
   }
 }
 
 /**
- * Fetches and returns the details of a specific starship by its ID.
- * @param {string} id - The ID of the starship.
- * @returns {Promise<Starship>} - A promise that resolves to the starship details.
+ * Fetches all starships from the SWAPI (Star Wars API) and caches the result.
+ *
+ * This function retrieves the starships data from the SWAPI, handling pagination
+ * to ensure all pages of results are fetched. The data is then cached using
+ * the CacheService to avoid redundant API calls.
+ *
+ * @returns {Promise<Starship[]>} A promise that resolves to an array of Starship objects.
+ *
+ * @throws {Error} Throws an error if the fetch operation fails.
  */
-async function getStarship (id: string): Promise<Starship> {
+async function getStarships (): Promise<Starship[]> {
   const SWAPI_URL = process.env.SWAPI_URL
 
   try {
-    return await CacheService.tryGetApiData(`starships:${id}`, async () => {
-      const response = await fetch(`${SWAPI_URL}/starships/${id}`)
-      if (!response.ok) throw new Error('Failed to fetch starship details')
-      return await response.json()
+    return await CacheService.tryGetApiData(`starships`, async () => {
+      const response = await fetch(`${SWAPI_URL}/starships`)
+      if (!response.ok) throw new Error('Failed to fetch starships')
+      const data: ApiResponse<Starship> = await response.json()
+      const totalPages = Math.ceil(data.count / 10)
+      const requests = fetchAllPages(totalPages, `${SWAPI_URL}/starships`)
+      const responses = await Promise.all(requests)
+      const starshipResponses: ApiResponse<Starship>[] = await Promise.all(
+        responses.map(res => res.json())
+      )
+      starshipResponses.forEach(pageData => {
+        data.results = data.results.concat(pageData.results)
+      })
+      return data.results
     })
   } catch (error) {
-    console.error(`Error fetching starship with ID ${id}:`, error)
+    console.error(`Error fetching starships:`, error)
     throw error
   }
 }
@@ -194,13 +212,16 @@ export async function getCharacter (
 }
 
 /**
- * Fetches and returns a list of characters.
- * Only includes characters that appear in currently fetched movies.
- * @returns {Promise<Character[]>} - A promise that resolves to a list of characters.
+ * Fetches a list of characters from the SWAPI (Star Wars API).
+ *
+ * This function attempts to retrieve character data from a cache first.
+ * If the data is not available in the cache, it fetches the data from the SWAPI.
+ * It handles pagination by fetching all pages of character data and concatenating the results.
+ *
+ * @returns {Promise<Character[]>} A promise that resolves to an array of Character objects.
+ * @throws Will throw an error if the fetch operation fails.
  */
-export async function getCharacters (
-  movieId: string | null
-): Promise<Character[]> {
+async function getCharacters (): Promise<Character[]> {
   const SWAPI_URL = process.env.SWAPI_URL
 
   try {
@@ -212,11 +233,8 @@ export async function getCharacters (
         const data: ApiResponse<Character> = await response.json()
 
         const totalPages = Math.ceil(data.count / 10)
-        const requests: Promise<Response>[] = []
-        for (let i = 2; i <= totalPages; i++) {
-          requests.push(fetch(`${SWAPI_URL}/people?page=${i}`))
-        }
 
+        const requests = fetchAllPages(totalPages, `${SWAPI_URL}/people`)
         const responses = await Promise.all(requests)
         const results: ApiResponse<Character>[] = await Promise.all(
           responses.map(res => res.json())
@@ -230,29 +248,67 @@ export async function getCharacters (
       }
     )
 
-    const movieKeys = await CacheService.getAllCategoryKeys('movies')
-    const currentlyFetchedMovieIds = movieKeys.map(key => key.split(':').pop())
-    const allowedCharacters = characters.filter(character =>
-      character.films.some(movieUrl => {
-        const characterMovieId = trimUrl(movieUrl).split('/').pop()
-        const isAllowed = currentlyFetchedMovieIds.includes(characterMovieId)
-        if (!isAllowed) {
-          return false
-        }
-
-        if (movieId) {
-          return characterMovieId === movieId
-        }
-
-        return true
-      })
-    )
-
-    return allowedCharacters
+    return characters
   } catch (error) {
     console.error('Error fetching characters:', error)
     throw error
   }
+}
+
+/**
+ * Fetches characters with filters applied based on the provided movie ID.
+ *
+ * This function retrieves all characters and filters them based on the movies they appear in.
+ * If a `movieId` is provided, only characters from that specific movie are returned.
+ * If no `movieId` is provided, characters from all currently fetched movies are returned.
+ * Note that only characters in movies that are currently in the cache are considered.
+ *
+ * @param {string | null} movieId - The ID of the movie to filter characters by. If null, characters from all movies are returned.
+ * @returns {Promise<Character[]>} A promise that resolves to an array of filtered characters.
+ */
+export async function getCharactersWithFilters (
+  movieId: string | null
+): Promise<Character[]> {
+  const [characters, movieKeys] = await Promise.all([
+    getCharacters(),
+    CacheService.getAllCategoryKeys('movies')
+  ])
+  const currentlyFetchedMovieIds = movieKeys.map(key => key.split(':').pop())
+  const allowedCharacters = characters.filter(character =>
+    character.films.some(movieUrl => {
+      const characterMovieId = trimUrl(movieUrl).split('/').pop()
+      const isAllowed = currentlyFetchedMovieIds.includes(characterMovieId)
+      if (!isAllowed) {
+        return false
+      }
+
+      if (movieId) {
+        return characterMovieId === movieId
+      }
+
+      return true
+    })
+  )
+
+  return allowedCharacters
+}
+
+/**
+ * Fetches all pages from a paginated API endpoint starting from the second page.
+ *
+ * @param totalPages - The total number of pages to fetch.
+ * @param url - The base URL of the API endpoint.
+ * @returns An array of promises, each resolving to a Response object for each page.
+ */
+const fetchAllPages = (
+  totalPages: number,
+  url: string
+): Promise<Response>[] => {
+  const requests: Promise<Response>[] = []
+  for (let i = 2; i <= totalPages; i++) {
+    requests.push(fetch(`${url}?page=${i}`))
+  }
+  return requests
 }
 
 /**

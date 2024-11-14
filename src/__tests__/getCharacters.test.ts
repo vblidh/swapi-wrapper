@@ -1,6 +1,6 @@
 import exp from 'constants'
 import CacheService from '../cache-service'
-import { getCharacters } from '../swapi-service'
+import { getCharactersWithFilters } from '../swapi-service'
 import { Character } from '../types'
 
 jest.mock('../cache-service')
@@ -87,7 +87,7 @@ describe('getCharacters', () => {
       'movie:1',
       'movie:4'
     ])
-    const characters = await getCharacters(null)
+    const characters = await getCharactersWithFilters(null)
 
     expect(characters).toHaveLength(3)
     expect(characters[0].name).toBe('Luke Skywalker')
@@ -99,7 +99,7 @@ describe('getCharacters', () => {
       'movie:4'
     ])
 
-    const characters = await getCharacters(null)
+    const characters = await getCharactersWithFilters(null)
     expect(characters).toHaveLength(1)
     expect(characters[0].name).toBe('Padme Amidala')
   })
@@ -109,7 +109,7 @@ describe('getCharacters', () => {
       'movie:1'
     ])
 
-    const characters = await getCharacters('1')
+    const characters = await getCharactersWithFilters('1')
 
     expect(characters).toHaveLength(2)
     expect(characters[0].name).toBe('Luke Skywalker')
@@ -119,7 +119,7 @@ describe('getCharacters', () => {
   it('should return an empty list if no movies has been queried prior to the call regardless of movieId', async () => {
     ;(CacheService.getAllCategoryKeys as jest.Mock).mockResolvedValue([])
     
-    const characters = await getCharacters('1')
+    const characters = await getCharactersWithFilters('1')
 
     expect(characters).toHaveLength(0)
   })

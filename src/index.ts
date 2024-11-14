@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 import CacheService from './cache-service'
-import { getCharacter, getCharacters, getMovie, getMovies } from './swapi-service'
+import { getCharacter, getCharactersWithFilters, getMovie, getMovies } from './swapi-service'
 import { MovieResponse, DetailedMovieResponse } from './models/MovieResponse'
 import { CharacterResponse, DetailedCharacterResponse } from './models/CharacterResponse'
 
@@ -63,7 +63,7 @@ async function startServer () {
   app.get('/characters', async (req: Request, res: Response) => {
     try {
       const { movie: movieId } = req.query as { movie: string | null }
-      const characters = await getCharacters(movieId)
+      const characters = await getCharactersWithFilters(movieId)
 
       const characterResponse: CharacterResponse[] = characters.map((character: any) => ({
         name: character.name,

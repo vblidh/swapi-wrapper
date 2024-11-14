@@ -12,13 +12,17 @@ const mockMovie: Movie = {
   opening_crawl: '',
   director: '',
   producer: '',
-  characters: [],
+  characters: [
+    'https://swapi.dev/api/people/1/'
+  ],
   planets: [
     'https://swapi.dev/api/planets/1/',
     'https://swapi.dev/api/planets/2/',
     'https://swapi.dev/api/planets/3/'
   ],
-  starships: [],
+  starships: [
+    'https://swapi.dev/api/starships/9/'
+  ],
   vehicles: [],
   species: []
 }
@@ -44,6 +48,46 @@ const mockPlanets: Planet[] = [
   }
 ]
 
+const mockStarships = [
+  {
+    name: 'Death Star',
+    model: 'DS-1 Orbital Battle Station',
+    manufacturer: 'Imperial Department of Military Research',
+    cost_in_credits: '1000000000000',
+    length: '120000',
+    max_atmosphering_speed: 'n/a',
+    crew: '342,953',
+    passengers: '843,342',
+    cargo_capacity: '1000000000000',
+    consumables: '3 years',
+    hyperdrive_rating: '4.0',
+    MGLT: '10',
+    starship_class: 'Deep Space Mobile Battlestation',
+    pilots: [],
+    films: ['https://swapi.dev/api/films/1/'],
+    url: 'https://swapi.dev/api/starships/9/'
+  }
+]
+
+const mockCharacters = [
+  {
+    name: 'Luke Skywalker',
+    height: '172',
+    mass: '77',
+    hair_color: 'blond',
+    skin_color: 'fair',
+    eye_color: 'blue',
+    birth_year: '19BBY',
+    gender: 'male',
+    homeworld: 'https://swapi.dev/api/planets/1/',
+    films: ['https://swapi.dev/api/films/1/'],
+    species: [],
+    vehicles: [],
+    starships: ['https://swapi.dev/api/starships/12/'],
+    url: 'https://swapi.dev/api/people/1/'
+  }
+]
+
 describe('getMovie', () => {
   it('should return the details of a specific movie', async () => {
     ;(CacheService.tryGetApiData as jest.Mock).mockImplementation(
@@ -51,14 +95,14 @@ describe('getMovie', () => {
         if (key === 'movies:1') {
           return Promise.resolve(mockMovie)
         }
-        if (key === 'planets:1') {
-          return Promise.resolve(mockPlanets[0])
+        if (key === 'planets') {
+          return Promise.resolve(mockPlanets)
         }
-        if (key === 'planets:2') {
-          return Promise.resolve(mockPlanets[1])
+        if (key === 'characters') {
+          return Promise.resolve(mockCharacters)
         }
-        if (key === 'planets:3') {
-          return Promise.resolve(mockPlanets[2])
+        if (key === 'starships') {
+          return Promise.resolve(mockStarships)
         }
       }
     )
@@ -67,5 +111,7 @@ describe('getMovie', () => {
 
     expect(movie.title).toBe('A New Hope')
     expect(movie.planets).toEqual(mockPlanets.map(planet => planet.name))
+    expect(movie.characters).toEqual(mockCharacters.map(character => character.name))
+    expect(movie.starships).toEqual(mockStarships.map(starship => starship.name))
   })
 })
