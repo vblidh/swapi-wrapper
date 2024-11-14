@@ -1,22 +1,39 @@
-import express, { Express, Request, Response } from 'express'
-import { Movie, OrderDirection, SortType } from './types'
+import express, { Express, NextFunction, Request, Response } from 'express'
+import { OrderDirection, SortType } from './types'
+
+import cookieParser from 'cookie-parser'
 
 import dotenv from 'dotenv'
-dotenv.config()
 
 import CacheService from './cache-service'
-import { getCharacter, getCharactersWithFilters, getMovie, getMovies } from './swapi-service'
+import {
+  getCharacter,
+  getCharactersWithFilters,
+  getMovie,
+  getMovies
+} from './swapi-service'
 import { MovieResponse, DetailedMovieResponse } from './models/MovieResponse'
-import { CharacterResponse, DetailedCharacterResponse } from './models/CharacterResponse'
+import {
+  CharacterResponse,
+  DetailedCharacterResponse
+} from './models/CharacterResponse'
 
+dotenv.config()
 async function startServer () {
   await CacheService.initRedisCache()
 
   const app: Express = express()
   const PORT: string | number = process.env.PORT || 3000
 
+  app.use(cookieParser())
+
   app.get('/movies', async (req: Request, res: Response) => {
     try {
+      let clientId = req.cookies['client-id']
+      if (!clientId) {
+        clientId = createClientId()
+        res.cookie('client-id', clientId)
+      }
       const { sort, order } = req.query as {
         sort: SortType
         order: OrderDirection
@@ -29,6 +46,7 @@ async function startServer () {
         episode: movie.episode_id,
         releaseDate: movie.release_date
       }))
+
       res.send(movieResponse)
     } catch (error) {
       console.error('Error fetching movies:', error)
@@ -38,8 +56,14 @@ async function startServer () {
 
   app.get('/movies/:id', async (req: Request, res: Response) => {
     const { id } = req.params
+
+    let clientId = req.cookies['client-id']
+    if (!clientId) {
+      clientId = createClientId()
+      res.cookie('client-id', clientId)
+    }
     try {
-      const movie = await getMovie(id)
+      const movie = await getMovie(id, clientId)
 
       const movieResponse: DetailedMovieResponse = {
         title: movie.title,
@@ -62,13 +86,21 @@ async function startServer () {
 
   app.get('/characters', async (req: Request, res: Response) => {
     try {
-      const { movie: movieId } = req.query as { movie: string | null }
-      const characters = await getCharactersWithFilters(movieId)
+      let clientId = req.cookies['client-id']
+      if (!clientId) {
+        clientId = createClientId()
+        res.cookie('client-id', clientId)
+      }
 
-      const characterResponse: CharacterResponse[] = characters.map((character: any) => ({
-        name: character.name,
-        homeWorld: character.homeworld
-      }))
+      const { movie: movieId } = req.query as { movie: string | null }
+      const characters = await getCharactersWithFilters(movieId, clientId)
+
+      const characterResponse: CharacterResponse[] = characters.map(
+        character => ({
+          name: character.name,
+          homeWorld: character.homeworld
+        })
+      )
 
       res.send(characterResponse)
     } catch (error) {
@@ -80,7 +112,6 @@ async function startServer () {
   app.get('/characters/:id', async (req: Request, res: Response) => {
     const { id } = req.params
     try {
-
       const character = await getCharacter(id, true)
 
       const characterResponse: DetailedCharacterResponse = {
@@ -91,7 +122,7 @@ async function startServer () {
         hairColor: character.hair_color,
         homeWorld: character.homeworld,
         skinColor: character.skin_color,
-        films: character.films,
+        films: character.films
       }
 
       res.send(characterResponse)
@@ -106,10 +137,8 @@ async function startServer () {
   })
 }
 
-const isLocalRequest = (req: Request) => {
-  const ip =
-    req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress
-  return ip === '127.0.0.1' || ip === '::1'
+const createClientId = () => {
+  return Math.random().toString(36).substring(7)
 }
 
 startServer()

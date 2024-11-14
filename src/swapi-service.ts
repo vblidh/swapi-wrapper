@@ -8,6 +8,7 @@ import {
   Starship
 } from './types'
 import CacheService from './cache-service'
+import cacheService from './cache-service'
 
 /**
  * Fetches and returns a list of movies, sorted by the specified criteria.
@@ -53,17 +54,18 @@ export async function getMovies (
 
 /**
  * Fetches and returns the details of a specific movie by its ID.
- * @param {string} id - The ID of the movie.
+ * @param {string} movieId - The ID of the movie.
+ * @param {string} clientId - The ID of the client making the request.
  * @returns {Promise<Movie>} - A promise that resolves to the movie details.
  */
-export async function getMovie (id: string): Promise<Movie> {
+export async function getMovie (movieId: string, clientId: string): Promise<Movie> {
   const SWAPI_URL = process.env.SWAPI_URL
 
   try {
     const movieDetails = await CacheService.tryGetApiData<Movie>(
-      `movies:${id}`,
+      `movies:${movieId}`,
       async () => {
-        const response = await fetch(`${SWAPI_URL}/films/${id}`)
+        const response = await fetch(`${SWAPI_URL}/films/${movieId}`)
         if (!response.ok) {
           throw new Error('Failed to fetch movie details')
         }
@@ -91,9 +93,11 @@ export async function getMovie (id: string): Promise<Movie> {
       .filter(c => movieDetails.characters.includes(c.url))
       .map(c => c.name)
 
+    cacheService.updateFetchedMoviesByUser(clientId, movieId)
+
     return movieDetails
   } catch (error) {
-    console.error(`Error fetching movie with ID ${id}:`, error)
+    console.error(`Error fetching movie with ID ${movieId}:`, error)
     throw error
   }
 }
@@ -267,17 +271,18 @@ async function getCharacters (): Promise<Character[]> {
  * @returns {Promise<Character[]>} A promise that resolves to an array of filtered characters.
  */
 export async function getCharactersWithFilters (
-  movieId: string | null
+  movieId: string | null,
+  clientId: string
 ): Promise<Character[]> {
-  const [characters, movieKeys] = await Promise.all([
+  const [characters, fetchedMovieIds] = await Promise.all([
     getCharacters(),
-    CacheService.getAllCategoryKeys('movies')
+    CacheService.getFetchedMoviesByUser(clientId)
   ])
-  const currentlyFetchedMovieIds = movieKeys.map(key => key.split(':').pop())
+  
   const allowedCharacters = characters.filter(character =>
     character.films.some(movieUrl => {
-      const characterMovieId = trimUrl(movieUrl).split('/').pop()
-      const isAllowed = currentlyFetchedMovieIds.includes(characterMovieId)
+      const characterMovieId = trimUrl(movieUrl).split('/').pop() || ''
+      const isAllowed = fetchedMovieIds.includes(characterMovieId)
       if (!isAllowed) {
         return false
       }

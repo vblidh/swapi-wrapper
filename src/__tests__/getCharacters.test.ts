@@ -5,6 +5,7 @@ import { Character } from '../types'
 
 jest.mock('../cache-service')
 
+const CLIENT_ID = 'abc123'
 const mockCharacters: Character[] = [
   {
     name: 'Luke Skywalker',
@@ -83,33 +84,50 @@ describe('getCharacters', () => {
   })
 
   it('should return a list of characters when movie endpoint has been queried', async () => {
-    ;(CacheService.getAllCategoryKeys as jest.Mock).mockResolvedValue([
-      'movie:1',
-      'movie:4'
-    ])
-    const characters = await getCharactersWithFilters(null)
+    ;(CacheService.getFetchedMoviesByUser as jest.Mock).mockImplementation(
+      clientId => {
+        if (clientId === CLIENT_ID) {
+          return ['1', '4']
+        }
+        return []
+      }
+    )
+    const characters = await getCharactersWithFilters(null, CLIENT_ID)
 
     expect(characters).toHaveLength(3)
     expect(characters[0].name).toBe('Luke Skywalker')
     expect(characters[1].name).toBe('Darth Vader')
   })
 
-  it('should only return characters from movies that has been queried', async () => {
-    ;(CacheService.getAllCategoryKeys as jest.Mock).mockResolvedValue([
-      'movie:4'
-    ])
+  it('should only return characters from movies that has been queried by that user', async () => {
+    ;(CacheService.getFetchedMoviesByUser as jest.Mock).mockImplementation(
+      clientId => {
+        if (clientId === CLIENT_ID) {
+          return ['4']
+        }
+        return []
+      }
+    )
 
-    const characters = await getCharactersWithFilters(null)
+    const characters = await getCharactersWithFilters(null, CLIENT_ID)
     expect(characters).toHaveLength(1)
     expect(characters[0].name).toBe('Padme Amidala')
+
+    const charactersForSecondUser = await getCharactersWithFilters(null, 'def456')
+    expect(charactersForSecondUser).toHaveLength(0)
   })
 
   it('should return characters filtered by movie ID', async () => {
-    ;(CacheService.getAllCategoryKeys as jest.Mock).mockResolvedValue([
-      'movie:1'
-    ])
+    ;(CacheService.getFetchedMoviesByUser as jest.Mock).mockImplementation(
+      clientId => {
+        if (clientId === CLIENT_ID) {
+          return ['1']
+        }
+        return []
+      }
+    )
 
-    const characters = await getCharactersWithFilters('1')
+    const characters = await getCharactersWithFilters('1', CLIENT_ID)
 
     expect(characters).toHaveLength(2)
     expect(characters[0].name).toBe('Luke Skywalker')
@@ -117,9 +135,9 @@ describe('getCharacters', () => {
   })
 
   it('should return an empty list if no movies has been queried prior to the call regardless of movieId', async () => {
-    ;(CacheService.getAllCategoryKeys as jest.Mock).mockResolvedValue([])
+    ;(CacheService.getFetchedMoviesByUser as jest.Mock).mockResolvedValue([])
     
-    const characters = await getCharactersWithFilters('1')
+    const characters = await getCharactersWithFilters('1', CLIENT_ID)
 
     expect(characters).toHaveLength(0)
   })

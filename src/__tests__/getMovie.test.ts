@@ -107,7 +107,7 @@ describe('getMovie', () => {
       }
     )
 
-    const movie = await getMovie('1')
+    const movie = await getMovie('1', 'abc123')
 
     expect(movie.title).toBe('A New Hope')
     expect(movie.planets).toEqual(mockPlanets.map(planet => planet.name))
