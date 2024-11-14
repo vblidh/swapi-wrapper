@@ -11,7 +11,6 @@ class CacheService {
     this.client = createClient({}).on('error', (err: any) =>
       console.error('Redis Client Error', err)
     )
-
     await this.client.connect()
   }
 
@@ -77,7 +76,6 @@ class CacheService {
       await this.setValue(key, JSON.stringify(fallbackValue))
       return fallbackValue
     }
-
     return value
   }
 }

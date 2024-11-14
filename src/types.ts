@@ -15,8 +15,8 @@ export interface Movie {
   starships: string[]
   vehicles: string[]
   species: string[]
-  created: string
-  edited: string
+  created?: string
+  edited?: string
   url: string
 }
 
@@ -34,8 +34,8 @@ export interface Character {
   species: string[]
   vehicles: string[]
   starships: string[]
-  created: string
-  edited: string
+  created?: string
+  edited?: string
   url: string
 }
 
@@ -43,16 +43,16 @@ export interface Planet {
   name: string
   rotation_period: string
   orbital_period: string
-  diameter: string
-  climate: string
-  gravity: string
-  terrain: string
-  surface_water: string
-  population: string
-  residents: string[]
-  films: string[]
-  created: string
-  edited: string
+  diameter?: string
+  climate?: string
+  gravity?: string
+  terrain?: string
+  surface_water?: string
+  population?: string
+  residents?: string[]
+  films?: string[]
+  created?: string
+  edited?: string
   url: string
 }
 
@@ -72,8 +72,8 @@ export interface Starship {
   starship_class: string
   pilots: string[]
   films: string[]
-  created: string
-  edited: string
+  created?: string
+  edited?: string
   url: string
 }
 

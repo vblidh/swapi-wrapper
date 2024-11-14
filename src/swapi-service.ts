@@ -9,8 +9,6 @@ import {
 } from './types'
 import CacheService from './cache-service'
 
-const SWAPI_URL = process.env.SWAPI_URL
-
 /**
  * Fetches and returns a list of movies, sorted by the specified criteria.
  * @param {SortType} sort - The type of sorting (e.g., 'release' or 'episode').
@@ -21,6 +19,8 @@ export async function getMovies (
   sort: SortType,
   order: OrderDirection
 ): Promise<Movie[]> {
+  const SWAPI_URL = process.env.SWAPI_URL
+
   try {
     const data = await CacheService.tryGetApiData<Movie[]>(
       'movies',
@@ -57,6 +57,8 @@ export async function getMovies (
  * @returns {Promise<Movie>} - A promise that resolves to the movie details.
  */
 export async function getMovie (id: string): Promise<Movie> {
+  const SWAPI_URL = process.env.SWAPI_URL
+
   try {
     const movieDetails = await CacheService.tryGetApiData<Movie>(
       `movies:${id}`,
@@ -116,6 +118,8 @@ export async function getMovie (id: string): Promise<Movie> {
  * @returns {Promise<Planet>} - A promise that resolves to the planet details.
  */
 async function getPlanet (id: string): Promise<Planet> {
+  const SWAPI_URL = process.env.SWAPI_URL
+
   try {
     return await CacheService.tryGetApiData(`planets:${id}`, async () => {
       const response = await fetch(`${SWAPI_URL}/planets/${id}`)
@@ -134,6 +138,8 @@ async function getPlanet (id: string): Promise<Planet> {
  * @returns {Promise<Starship>} - A promise that resolves to the starship details.
  */
 async function getStarship (id: string): Promise<Starship> {
+  const SWAPI_URL = process.env.SWAPI_URL
+
   try {
     return await CacheService.tryGetApiData(`starships:${id}`, async () => {
       const response = await fetch(`${SWAPI_URL}/starships/${id}`)
@@ -157,6 +163,8 @@ export async function getCharacter (
   id: string,
   includeFilmTitle: boolean = false
 ): Promise<Character> {
+  const SWAPI_URL = process.env.SWAPI_URL
+
   try {
     const character = await CacheService.tryGetApiData<Character>(
       `characters:${id}`,
@@ -193,6 +201,8 @@ export async function getCharacter (
 export async function getCharacters (
   movieId: string | null
 ): Promise<Character[]> {
+  const SWAPI_URL = process.env.SWAPI_URL
+
   try {
     const characters = await CacheService.tryGetApiData(
       'characters',
