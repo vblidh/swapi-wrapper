@@ -295,7 +295,18 @@ export async function getCharactersWithFilters (
     })
   )
 
-  return allowedCharacters
+  const planets = await getPlanets()
+
+  const modifiedCharacters = allowedCharacters.map(character => {
+    const planet = planets.find(planet => planet.url === character.homeworld)
+    const homeWorldName = planet ? planet.name : 'Unknown'
+    return {
+      ...character,
+      homeworld: homeWorldName
+    }
+  })
+
+  return modifiedCharacters
 }
 
 /**

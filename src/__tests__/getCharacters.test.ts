@@ -69,18 +69,37 @@ const mockCharacters: Character[] = [
   }
 ]
 
-;(CacheService.tryGetApiData as jest.Mock).mockImplementation(
-  (key, fallback) => {
-    if (key === 'characters') {
-      return Promise.resolve(mockCharacters)
-    }
-    return fallback()
+const mockPlanets = [
+  {
+    name: 'Tatooine',
+    rotation_period: '23',
+    orbital_period: '304',
+    url: 'https://swapi.dev/api/planets/1/'
+  },
+  {
+    name: 'Alderaan',
+    rotation_period: '24',
+    orbital_period: '364',
+    url: 'https://swapi.dev/api/planets/2/'
   }
-)
+]
+
+
 
 describe('getCharacters', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    ;(CacheService.tryGetApiData as jest.Mock).mockImplementation(
+      (key, fallback) => {
+        if (key === 'characters') {
+          return Promise.resolve(mockCharacters)
+        }
+        if (key === 'planets') {
+          return Promise.resolve(mockPlanets)
+        }
+        return fallback()
+      }
+    )
   })
 
   it('should return a list of characters when movie endpoint has been queried', async () => {
@@ -96,7 +115,11 @@ describe('getCharacters', () => {
 
     expect(characters).toHaveLength(3)
     expect(characters[0].name).toBe('Luke Skywalker')
+    expect(characters[0].homeworld).toEqual('Tatooine')
     expect(characters[1].name).toBe('Darth Vader')
+    expect(characters[1].homeworld).toEqual('Tatooine')
+    expect(characters[2].name).toBe('Padme Amidala')
+    expect(characters[2].homeworld).toEqual('Alderaan')
   })
 
   it('should only return characters from movies that has been queried by that user', async () => {
@@ -112,6 +135,7 @@ describe('getCharacters', () => {
     const characters = await getCharactersWithFilters(null, CLIENT_ID)
     expect(characters).toHaveLength(1)
     expect(characters[0].name).toBe('Padme Amidala')
+    expect(characters[0].homeworld).toEqual('Alderaan')
 
     const charactersForSecondUser = await getCharactersWithFilters(null, 'def456')
     expect(charactersForSecondUser).toHaveLength(0)
